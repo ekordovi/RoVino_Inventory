@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wine Inventory</title>
+    <title>Inventory</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
 
-        .wine-cards {
+        .inventory-cards {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
         }
 
-        .wine-card {
+        .inventory-card {
             width: 200px;
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -26,19 +26,19 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .wine-card img {
+        .inventory-card img {
             width: 100px;
             height: 100px;
             object-fit: cover;
             margin-bottom: 15px;
         }
 
-        .wine-card h3 {
+        .inventory-card h3 {
             margin: 10px 0;
             font-size: 18px;
         }
 
-        .wine-card p {
+        .inventory-card p {
             margin: 5px 0;
         }
 
@@ -58,29 +58,37 @@
     </style>
 </head>
 <body>
-    <h1>Wine Inventory</h1>
+    <h1>Inventory</h1>
     {% if success_message %}
         <p style="color: green;">{{ success_message }}</p>
     {% endif %}
     
-    <div class="wine-cards">
-        {% for wine in wines %}
-            <div class="wine-card {% if wine['current_stock'] < 5 %}low-stock{% endif %}">
-                <!-- Display Beer Can Image if wine type is "BEER" -->
-                {% if wine['type'].upper() == 'BEER' %}
-                    <img src="{{ url_for('static', filename='images/beer-can.png') }}" alt="Beer">
-                {% elif wine['type'].lower() == 'mixer' %}
-                    <img src="{{ url_for('static', filename='images/carton.png') }}" alt="Mixer">
-                {% else %}
-                    <img src="{{ url_for('static', filename='images/wine-glass.png') }}" alt="Wine Glass">
-                {% endif %}
+    <div class="inventory-cards">
+        {% for item in items %}
+            <div class="inventory-card {% if item['quantity'] < 5 %}low-stock{% endif %}">
+               <!-- Display relevant image based on category -->
+               {% if item['category'].lower() == 'wine' %}
+               <img src="{{ url_for('static', filename='images/wine-glass.png') }}" alt="Wine">
+           {% elif item['category'].lower() == 'liquor' %}
+               <img src="{{ url_for('static', filename='images/liquor-bottle.png') }}" alt="Liquor">
+           {% elif item['category'].lower() == 'garnish' %}
+               <img src="{{ url_for('static', filename='images/garnish.png') }}" alt="Garnish">
+           {% elif item['category'].lower() == 'espresso pod' %}
+               <img src="{{ url_for('static', filename='images/espresso-pod.png') }}" alt="Espresso Pod">
+           {% elif item['category'].lower() == 'straw' %}
+               <img src="{{ url_for('static', filename='images/straw.png') }}" alt="Straw">
+           {% else %}
+               <img src="{{ url_for('static', filename='images/default-item.png') }}" alt="Item">
+           {% endif %}
                 
-                <h3>{{ wine['name'] }}</h3>
-                <p>Type: {{ wine['type'] }}</p>
-                <p>Current Stock: {{ wine['current_stock'] }}</p>
-                <form action="/update" method="post">
-                    <input type="number" name="{{ wine['wine_id'] }}" value="{{ wine['current_stock'] }}" min="0">
-                    <button type="submit">Update</button>
+           <h3>{{ item['item_name'] }}</h3>
+           <p>Category: {{ item['category'] }}</p>
+           <p>Stock: {{ item['quantity'] }}</p>
+           <p>Price: ${{ item['price'] }}</p>
+           <p>Last Updated: {{ item['last_updated'] }}</p>
+           <form action="/update" method="post">
+               <input type="number" name="{{ item['id'] }}" value="{{ item['quantity'] }}" min="0">
+               <button type="submit">Update</button>
                 </form>
             </div>
         {% endfor %}
