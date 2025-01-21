@@ -3,11 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory</title>
+    <title>Wine Inventory Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        header img {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 50px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            color: #333;
         }
 
         .inventory-cards {
@@ -58,42 +89,47 @@
     </style>
 </head>
 <body>
-    <h1>Inventory</h1>
-    {% if success_message %}
-        <p style="color: green;">{{ success_message }}</p>
-    {% endif %}
-    
-    <div class="inventory-cards">
-        {% for item in items %}
-            <div class="inventory-card {% if item['quantity'] < 5 %}low-stock{% endif %}">
-               <!-- Display relevant image based on category -->
-               {% if item['category'].lower() == 'wine' %}
-               <img src="{{ url_for('static', filename='images/wine-glass.png') }}" alt="Wine">
-           {% elif item['category'].lower() == 'liquor' %}
-               <img src="{{ url_for('static', filename='images/liquor-bottle.png') }}" alt="Liquor">
-           {% elif item['category'].lower() == 'garnish' %}
-               <img src="{{ url_for('static', filename='images/garnish.png') }}" alt="Garnish">
-           {% elif item['category'].lower() == 'espresso pod' %}
-               <img src="{{ url_for('static', filename='images/espresso-pod.png') }}" alt="Espresso Pod">
-           {% elif item['category'].lower() == 'straw' %}
-               <img src="{{ url_for('static', filename='images/straw.png') }}" alt="Straw">
-           {% else %}
-               <img src="{{ url_for('static', filename='images/default-item.png') }}" alt="Item">
-           {% endif %}
-                
-           <h3>{{ item['item_name'] }}</h3>
-           <p>Category: {{ item['category'] }}</p>
-           <p>Stock: {{ item['quantity'] }}</p>
-           <p>Price: ${{ item['price'] }}</p>
-           <p>Last Updated: {{ item['last_updated'] }}</p>
-           <form action="/update" method="post">
-               <input type="number" name="{{ item['id'] }}" value="{{ item['quantity'] }}" min="0">
-               <button type="submit">Update</button>
-                </form>
-            </div>
-        {% endfor %}
-    </div>
+    <header>
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Wine Inventory Logo">
+        <h1>Wine Inventory Dashboard</h1>
+    </header>
+    <div class="container">
+        <h2>Inventory</h2>
+        {% if success_message %}
+            <p style="color: green;">{{ success_message }}</p>
+        {% endif %}
+        
+        <div class="inventory-cards">
+            {% for item in items %}
+                <div class="inventory-card {% if item['quantity'] < 5 %}low-stock{% endif %}">
+                   {% if item['category'].lower() == 'wine' %}
+                   <img src="{{ url_for('static', filename='images/wine-glass.png') }}" alt="Wine">
+                   {% elif item['category'].lower() == 'liquor' %}
+                   <img src="{{ url_for('static', filename='images/liquor-bottle.png') }}" alt="Liquor">
+                   {% elif item['category'].lower() == 'garnish' %}
+                   <img src="{{ url_for('static', filename='images/garnish.png') }}" alt="Garnish">
+                   {% elif item['category'].lower() == 'espresso pod' %}
+                   <img src="{{ url_for('static', filename='images/espresso-pod.png') }}" alt="Espresso Pod">
+                   {% elif item['category'].lower() == 'straw' %}
+                   <img src="{{ url_for('static', filename='images/straw.png') }}" alt="Straw">
+                   {% else %}
+                   <img src="{{ url_for('static', filename='images/default-item.png') }}" alt="Item">
+                   {% endif %}
+                    
+                   <h3>{{ item['item_name'] }}</h3>
+                   <p>Category: {{ item['category'] }}</p>
+                   <p>Stock: {{ item['quantity'] }}</p>
+                   <p>Price: ${{ item['price'] }}</p>
+                   <p>Last Updated: {{ item['last_updated'] }}</p>
+                   <form action="/update" method="post">
+                       <input type="number" name="{{ item['id'] }}" value="{{ item['quantity'] }}" min="0">
+                       <button type="submit">Update</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
 
-    <a href="/add" class="button">Add New Wine</a>
+        <a href="/add" class="button">Add New Wine</a>
+    </div>
 </body>
 </html>
