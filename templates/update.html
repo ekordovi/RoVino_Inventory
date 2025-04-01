@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Item - RoVino</title>
+    <title>Update Item - RoVino</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -34,60 +34,59 @@
 
         <div class="card">
             <div class="card-header">
-                <h5>Add New Item</h5>
+                <h5>Update Item</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('add') }}">
+                <form method="POST" action="{{ url_for('update', item_id=item.id) }}">
+                    {% if item.wine_id %}
+                        <input type="hidden" name="wine_id" value="{{ item.wine_id }}">
+                    {% endif %}
+                    
                     <div class="mb-3">
                         <label for="category" class="form-label">Category</label>
-                        <select class="form-select" id="category" name="category" required onchange="toggleWineFields()">
-                            <option value="wine" selected>Wine</option>
-                            <option value="accessory">Accessory</option>
-                            <option value="equipment">Equipment</option>
-                            <option value="other">Other</option>
-                        </select>
+                        <input type="text" class="form-control" id="category" name="category" value="{{ item.category }}" readonly>
                     </div>
 
                     <div class="mb-3">
                         <label for="item_name" class="form-label">Item Name</label>
-                        <input type="text" class="form-control" id="item_name" name="item_name" value="{{ item.item_name if item else '' }}" required>
+                        <input type="text" class="form-control" id="item_name" name="item_name" value="{{ item.item_name }}" required>
                     </div>
 
-                    <div id="wineFields">
-                        <div class="mb-3">
-                            <label for="wine_name" class="form-label">Wine Name</label>
-                            <input type="text" class="form-control" id="wine_name" name="wine_name" value="{{ item.wine_name if item else '' }}">
-                            <div class="form-text">Example: Daou, Ruffino, etc.</div>
+                    {% if item.category == 'wine' and item.wine_name and item.wine_type %}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Wine Name</label>
+                                <input type="text" class="form-control" value="{{ item.wine_name }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Wine Type</label>
+                                <input type="text" class="form-control" value="{{ item.wine_type }}" readonly>
+                            </div>
+                            <div class="form-text">To change wine details, delete this item and add a new one</div>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="wine_type" class="form-label">Wine Type</label>
-                            <input type="text" class="form-control" id="wine_type" name="wine_type" value="{{ item.wine_type if item else '' }}">
-                            <div class="form-text">Example: Cabernet Sauvignon, Chardonnay, etc.</div>
-                        </div>
-                    </div>
+                    {% endif %}
 
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="quantity" class="form-label">Quantity</label>
-                            <input type="number" class="form-control" id="quantity" name="quantity" min="0" value="{{ item.quantity if item else '0' }}" required>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="0" value="{{ item.quantity }}" required>
                         </div>
 
                         <div class="col-md-4 mb-3">
                             <label for="price" class="form-label">Price ($)</label>
-                            <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="{{ item.price if item else '0.00' }}" required>
+                            <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="{{ item.price }}" required>
                         </div>
 
                         <div class="col-md-4 mb-3">
                             <label for="low_stock_threshold" class="form-label">Low Stock Alert</label>
-                            <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" min="1" value="{{ item.low_stock_threshold if item else '5' }}" required>
+                            <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" min="1" value="{{ item.low_stock_threshold }}" required>
                             <div class="form-text">Alert when quantity falls below this value</div>
                         </div>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary">Add Item</button>
+                        <button type="submit" class="btn btn-primary">Update Item</button>
                     </div>
                 </form>
             </div>
@@ -95,24 +94,5 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function toggleWineFields() {
-            const category = document.getElementById('category').value;
-            const wineFields = document.getElementById('wineFields');
-            
-            if (category === 'wine') {
-                wineFields.style.display = 'block';
-                document.getElementById('wine_name').required = true;
-                document.getElementById('wine_type').required = true;
-            } else {
-                wineFields.style.display = 'none';
-                document.getElementById('wine_name').required = false;
-                document.getElementById('wine_type').required = false;
-            }
-        }
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', toggleWineFields);
-    </script>
 </body>
 </html>
