@@ -1,12 +1,19 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 import sqlite3
 from contextlib import contextmanager
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import date
+from functools import wraps
+import os
+import hashlib
+import secrets
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # Required for flash messages
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(16))  # Use environment variable or generate random key
+app.config['SESSION_COOKIE_SECURE'] = True  # For HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevents JavaScript access to session cookie
+app.config['PERMANENT_SESSION_LIFETIME'] = 1800  # 30 minutes
 logging.basicConfig(level=logging.INFO)
 
 # Custom exception for database errors
@@ -46,8 +53,219 @@ def validate_item(item_data: Dict[str, Any]) -> List[str]:
         errors.append("Price must be a valid number")
     return errors
 
+# Initialize user table
+def init_user_table():
+    try:
+        with get_db_connection() as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS Users (
+                    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    is_admin INTEGER DEFAULT 0,
+                    created_at TEXT NOT NULL
+                )
+            ''')
+            
+            # Check if admin user exists, if not create one
+            admin = conn.execute('SELECT * FROM Users WHERE username = ?', ('admin',)).fetchone()
+            if not admin:
+                salt = secrets.token_hex(16)
+                password = "admin123"  # Default password
+                password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+                
+                conn.execute('''
+                    INSERT INTO Users (username, password_hash, salt, is_admin, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', ('admin', password_hash, salt, 1, date.today().isoformat()))
+                
+                logging.info("Created default admin user")
+    except Exception as e:
+        logging.error(f"Error initializing user table: {str(e)}")
+
+# Initialize user table when app starts
+with app.app_context():
+    init_user_table()
+
+# Authentication decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash("Please log in to access this page", "error")
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Admin-only decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash("Please log in to access this page", "error")
+            return redirect(url_for('login', next=request.url))
+        
+        if not session.get('is_admin'):
+            flash("You don't have permission to access this page", "error")
+            return redirect(url_for('index'))
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        try:
+            with get_db_connection() as conn:
+                user = conn.execute('SELECT * FROM Users WHERE username = ?', (username,)).fetchone()
+                
+                if user:
+                    password_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
+                    
+                    if password_hash == user['password_hash']:
+                        session.clear()
+                        session['user_id'] = user['user_id']
+                        session['username'] = user['username']
+                        session['is_admin'] = bool(user['is_admin'])
+                        
+                        next_page = request.args.get('next')
+                        if next_page and next_page.startswith('/'):
+                            return redirect(next_page)
+                        return redirect(url_for('index'))
+                
+                flash("Invalid username or password", "error")
+                
+        except DatabaseError as e:
+            flash(str(e), "error")
+            
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("You have been logged out", "success")
+    return redirect(url_for('login'))
+
+# User management routes (admin only)
+@app.route('/users')
+@admin_required
+def users():
+    try:
+        with get_db_connection() as conn:
+            all_users = conn.execute('SELECT user_id, username, is_admin, created_at FROM Users').fetchall()
+            return render_template('users.html', users=all_users)
+    except DatabaseError as e:
+        flash(str(e), "error")
+        return redirect(url_for('index'))
+
+@app.route('/users/add', methods=['GET', 'POST'])
+@admin_required
+def add_user():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        is_admin = request.form.get('is_admin') == 'on'
+        
+        if not username or not password:
+            flash("Username and password are required", "error")
+            return render_template('add_user.html')
+            
+        try:
+            with get_db_connection() as conn:
+                # Check if username exists
+                existing = conn.execute('SELECT username FROM Users WHERE username = ?', (username,)).fetchone()
+                if existing:
+                    flash("Username already exists", "error")
+                    return render_template('add_user.html')
+                
+                # Create new user
+                salt = secrets.token_hex(16)
+                password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+                
+                conn.execute('''
+                    INSERT INTO Users (username, password_hash, salt, is_admin, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (username, password_hash, salt, 1 if is_admin else 0, date.today().isoformat()))
+                
+                flash("User created successfully", "success")
+                return redirect(url_for('users'))
+                
+        except DatabaseError as e:
+            flash(str(e), "error")
+            
+    return render_template('add_user.html')
+
+@app.route('/users/delete/<int:user_id>', methods=['POST'])
+@admin_required
+def delete_user(user_id):
+    try:
+        with get_db_connection() as conn:
+            # Prevent deleting yourself
+            if user_id == session.get('user_id'):
+                flash("You cannot delete your own account", "error")
+                return redirect(url_for('users'))
+                
+            conn.execute('DELETE FROM Users WHERE user_id = ?', (user_id,))
+            flash("User deleted successfully", "success")
+            
+    except DatabaseError as e:
+        flash(str(e), "error")
+        
+    return redirect(url_for('users'))
+
+# Change password route
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if not current_password or not new_password or not confirm_password:
+            flash("All fields are required", "error")
+            return render_template('change_password.html')
+            
+        if new_password != confirm_password:
+            flash("New passwords do not match", "error")
+            return render_template('change_password.html')
+            
+        try:
+            with get_db_connection() as conn:
+                user = conn.execute('SELECT * FROM Users WHERE user_id = ?', (session['user_id'],)).fetchone()
+                
+                # Verify current password
+                current_hash = hashlib.sha256((current_password + user['salt']).encode()).hexdigest()
+                if current_hash != user['password_hash']:
+                    flash("Current password is incorrect", "error")
+                    return render_template('change_password.html')
+                
+                # Update password
+                salt = secrets.token_hex(16)
+                new_hash = hashlib.sha256((new_password + salt).encode()).hexdigest()
+                
+                conn.execute('''
+                    UPDATE Users 
+                    SET password_hash = ?, salt = ?
+                    WHERE user_id = ?
+                ''', (new_hash, salt, session['user_id']))
+                
+                flash("Password changed successfully", "success")
+                return redirect(url_for('index'))
+                
+        except DatabaseError as e:
+            flash(str(e), "error")
+            
+    return render_template('change_password.html')
+
 # Home route - display inventory
 @app.route('/')
+@login_required
 def index():
     try:
         with get_db_connection() as conn:
@@ -67,6 +285,7 @@ def index():
 
 # Add new wine to inventory
 @app.route('/add', methods=['GET', 'POST'])
+@login_required
 def add():
     if request.method == 'POST':
         item_data = {
@@ -131,6 +350,7 @@ def add():
 
 # Update existing inventory item
 @app.route('/update/<int:item_id>', methods=['GET', 'POST'])
+@login_required
 def update(item_id: int):
     try:
         with get_db_connection() as conn:
@@ -194,6 +414,7 @@ def update(item_id: int):
 
 # Delete an inventory item
 @app.route('/delete/<int:item_id>', methods=['POST'])
+@login_required
 def delete(item_id: int):
     try:
         with get_db_connection() as conn:
@@ -218,6 +439,7 @@ def delete(item_id: int):
 
 # Add restock record
 @app.route('/restock/<int:wine_id>', methods=['GET', 'POST'])
+@login_required
 def restock(wine_id: int):
     try:
         with get_db_connection() as conn:
@@ -263,6 +485,7 @@ def restock(wine_id: int):
 
 # View restock history
 @app.route('/history')
+@login_required
 def history():
     try:
         with get_db_connection() as conn:
@@ -281,6 +504,7 @@ def history():
 
 # Low stock alert dashboard
 @app.route('/alerts')
+@login_required
 def alerts():
     try:
         with get_db_connection() as conn:
@@ -300,6 +524,7 @@ def alerts():
 
 # API endpoint for inventory data
 @app.route('/api/inventory', methods=['GET'])
+@login_required
 def api_inventory():
     try:
         with get_db_connection() as conn:
@@ -321,4 +546,6 @@ def api_inventory():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)wine_id']:
+                    remaining = conn.execute('SELECT COUNT(*) as count FROM Inventory WHERE wine_id = ?', 
+                                            (item['

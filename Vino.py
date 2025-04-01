@@ -3,6 +3,9 @@ import sqlite3
 import json
 import ssl
 import sys
+import os
+import hashlib
+import secrets
 from datetime import date
 
 conn = sqlite3.connect('Vino.sqlite')
@@ -94,6 +97,42 @@ cur.execute('INSERT OR IGNORE INTO Restock (wine_id, quantity_restocked, restock
             (2, 4, '2024-11-20'))
 cur.execute('INSERT OR IGNORE INTO Restock (wine_id, quantity_restocked, restock_date) VALUES (?, ?, ?)', 
             (3, 7, '2024-11-25'))
+
+# Create Wine Notes table
+cur.execute('''
+    CREATE TABLE IF NOT EXISTS WineNotes (
+        note_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+        wine_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        rating INTEGER,
+        tasting_notes TEXT,
+        date_added DATE NOT NULL,
+        FOREIGN KEY (wine_id) REFERENCES Wines(wine_id),
+        FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    );
+''')
+
+# Create Users table for authentication
+cur.execute('''
+    CREATE TABLE IF NOT EXISTS Users (
+        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        is_admin INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+    )
+''')
+
+# Add default admin user
+salt = secrets.token_hex(16)
+password = "admin123"  # Default password
+password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+
+cur.execute('''
+    INSERT OR IGNORE INTO Users (username, password_hash, salt, is_admin, created_at)
+    VALUES (?, ?, ?, ?, ?)
+''', ('admin', password_hash, salt, 1, date.today().isoformat()))
 
 print("Database initialized successfully.")
 conn.commit()
