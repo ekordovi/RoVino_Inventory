@@ -11,7 +11,7 @@ import secrets
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(16))  # Use environment variable or generate random key
-app.config['SESSION_COOKIE_SECURE'] = True  # For HTTPS
+app.config['SESSION_COOKIE_SECURE'] = False  # For HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevents JavaScript access to session cookie
 app.config['PERMANENT_SESSION_LIFETIME'] = 1800  # 30 minutes
 logging.basicConfig(level=logging.INFO)
