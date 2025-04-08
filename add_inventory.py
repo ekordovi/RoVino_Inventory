@@ -5,6 +5,46 @@ from datetime import date
 conn = sqlite3.connect('Vino.sqlite')
 cur = conn.cursor()
 
+# First, modify the Inventory table to make wine_id nullable
+print("Modifying database schema...")
+try:
+    # Create a new Inventory table with modified constraints
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS InventoryNew (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+            wine_id INTEGER,  -- Now it's nullable
+            item_name VARCHAR(150),
+            category VARCHAR(50) DEFAULT 'wine',
+            quantity INTEGER NOT NULL,
+            price REAL,
+            low_stock_threshold INTEGER,
+            last_updated DATE,
+            FOREIGN KEY (wine_id) REFERENCES Wines(wine_id)
+        );
+    ''')
+    
+    # Copy data from old table to new table
+    cur.execute('''
+        INSERT INTO InventoryNew 
+        SELECT * FROM Inventory;
+    ''')
+    
+    # Drop old table
+    cur.execute('''
+        DROP TABLE Inventory;
+    ''')
+    
+    # Rename new table to original name
+    cur.execute('''
+        ALTER TABLE InventoryNew RENAME TO Inventory;
+    ''')
+    
+    conn.commit()
+    print("Database schema modified successfully.")
+except Exception as e:
+    print(f"Error modifying database schema: {e}")
+    conn.rollback()
+
 # Make sure we have the necessary tables and columns
 try:
     # Create a spirits category in Wines table if it doesn't exist yet
@@ -193,7 +233,7 @@ for liquor_data in liquors:
         existing = cur.fetchone()
         
         if not existing:
-            # Add to inventory
+            # Add to inventory with NULL wine_id
             cur.execute('''
                 INSERT INTO Inventory 
                 (item_name, category, quantity, price, low_stock_threshold, last_updated) 
