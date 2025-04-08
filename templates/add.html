@@ -40,8 +40,12 @@
                 <form method="POST" action="{{ url_for('add') }}">
                     <div class="mb-3">
                         <label for="category" class="form-label">Category</label>
-                        <select class="form-select" id="category" name="category" required onchange="toggleWineFields()">
+                        <select class="form-select" id="category" name="category" required onchange="toggleItemFields()">
                             <option value="wine" selected>Wine</option>
+                            <option value="spirit">Spirit</option>
+                            <option value="beer">Beer</option>
+                            <option value="mixer">Mixer</option>
+                            <option value="fruit">Fruit/Garnish</option>
                             <option value="accessory">Accessory</option>
                             <option value="equipment">Equipment</option>
                             <option value="other">Other</option>
@@ -51,9 +55,11 @@
                     <div class="mb-3">
                         <label for="item_name" class="form-label">Item Name</label>
                         <input type="text" class="form-control" id="item_name" name="item_name" value="{{ item.item_name if item else '' }}" required>
+                        <div id="item_name_help" class="form-text">For wines, this will be auto-generated from wine name and type.</div>
                     </div>
 
-                    <div id="wineFields">
+                    <!-- Wine-specific fields -->
+                    <div id="wineFields" class="category-fields">
                         <div class="mb-3">
                             <label for="wine_name" class="form-label">Wine Name</label>
                             <input type="text" class="form-control" id="wine_name" name="wine_name" value="{{ item.wine_name if item else '' }}">
@@ -64,6 +70,65 @@
                             <label for="wine_type" class="form-label">Wine Type</label>
                             <input type="text" class="form-control" id="wine_type" name="wine_type" value="{{ item.wine_type if item else '' }}">
                             <div class="form-text">Example: Cabernet Sauvignon, Chardonnay, etc.</div>
+                        </div>
+                    </div>
+
+                    <!-- Spirit-specific fields -->
+                    <div id="spiritFields" class="category-fields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="spirit_category" class="form-label">Spirit Category</label>
+                            <select class="form-select" id="spirit_category" name="spirit_category">
+                                <option value="Tequila">Tequila</option>
+                                <option value="Mezcal">Mezcal</option>
+                                <option value="Vodka">Vodka</option>
+                                <option value="Whiskey">Whiskey</option>
+                                <option value="Scotch">Scotch</option>
+                                <option value="Gin">Gin</option>
+                                <option value="Rum">Rum</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="spirit_type" class="form-label">Spirit Type</label>
+                            <input type="text" class="form-control" id="spirit_type" name="spirit_type">
+                            <div class="form-text">Example: Blanco, Reposado, Single Malt, etc.</div>
+                        </div>
+                    </div>
+
+                    <!-- Beer-specific fields -->
+                    <div id="beerFields" class="category-fields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="beer_style" class="form-label">Beer Style</label>
+                            <input type="text" class="form-control" id="beer_style" name="beer_style">
+                            <div class="form-text">Example: IPA, Lager, Stout, etc.</div>
+                        </div>
+                    </div>
+
+                    <!-- Mixer-specific fields -->
+                    <div id="mixerFields" class="category-fields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="mixer_type" class="form-label">Mixer Type</label>
+                            <select class="form-select" id="mixer_type" name="mixer_type">
+                                <option value="Soda">Soda</option>
+                                <option value="Juice">Juice</option>
+                                <option value="Syrup">Syrup</option>
+                                <option value="Bitters">Bitters</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fruit/Garnish-specific fields -->
+                    <div id="fruitFields" class="category-fields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="fruit_type" class="form-label">Fruit/Garnish Type</label>
+                            <select class="form-select" id="fruit_type" name="fruit_type">
+                                <option value="Citrus">Citrus</option>
+                                <option value="Berry">Berry</option>
+                                <option value="Herb">Herb</option>
+                                <option value="Other">Other</option>
+                            </select>
                         </div>
                     </div>
 
@@ -96,23 +161,88 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        function toggleWineFields() {
+        function toggleItemFields() {
             const category = document.getElementById('category').value;
-            const wineFields = document.getElementById('wineFields');
             
-            if (category === 'wine') {
-                wineFields.style.display = 'block';
-                document.getElementById('wine_name').required = true;
-                document.getElementById('wine_type').required = true;
-            } else {
-                wineFields.style.display = 'none';
-                document.getElementById('wine_name').required = false;
-                document.getElementById('wine_type').required = false;
+            // Hide all category-specific fields first
+            document.querySelectorAll('.category-fields').forEach(field => {
+                field.style.display = 'none';
+            });
+            
+            // Show the relevant fields based on category
+            switch(category) {
+                case 'wine':
+                    document.getElementById('wineFields').style.display = 'block';
+                    document.getElementById('wine_name').required = true;
+                    document.getElementById('wine_type').required = true;
+                    break;
+                case 'spirit':
+                    document.getElementById('spiritFields').style.display = 'block';
+                    document.getElementById('spirit_category').required = true;
+                    document.getElementById('spirit_type').required = true;
+                    break;
+                case 'beer':
+                    document.getElementById('beerFields').style.display = 'block';
+                    document.getElementById('beer_style').required = true;
+                    break;
+                case 'mixer':
+                    document.getElementById('mixerFields').style.display = 'block';
+                    document.getElementById('mixer_type').required = true;
+                    break;
+                case 'fruit':
+                    document.getElementById('fruitFields').style.display = 'block';
+                    document.getElementById('fruit_type').required = true;
+                    break;
+                // Other categories don't have specific fields
+            }
+            
+            // Also update the item name placeholder based on category
+            updateItemNamePlaceholder(category);
+        }
+
+        function updateItemNamePlaceholder(category) {
+            const itemNameField = document.getElementById('item_name');
+            const itemNameHelp = document.getElementById('item_name_help');
+            
+            switch(category) {
+                case 'wine':
+                    itemNameField.placeholder = "Will be auto-generated from wine name and type";
+                    itemNameHelp.textContent = "For wines, this will be auto-generated from wine name and type.";
+                    break;
+                case 'spirit':
+                    itemNameField.placeholder = "E.g., Don Julio Blanco";
+                    itemNameHelp.textContent = "Enter the full name of the spirit.";
+                    break;
+                case 'beer':
+                    itemNameField.placeholder = "E.g., Sierra Nevada Pale Ale";
+                    itemNameHelp.textContent = "Enter the full name of the beer.";
+                    break;
+                case 'mixer':
+                    itemNameField.placeholder = "E.g., Fever-Tree Tonic";
+                    itemNameHelp.textContent = "Enter the brand and type of mixer.";
+                    break;
+                case 'fruit':
+                    itemNameField.placeholder = "E.g., Fresh Limes";
+                    itemNameHelp.textContent = "Enter the name of the fruit or garnish.";
+                    break;
+                case 'accessory':
+                    itemNameField.placeholder = "E.g., Wine Stopper";
+                    itemNameHelp.textContent = "Enter the name of the accessory.";
+                    break;
+                case 'equipment':
+                    itemNameField.placeholder = "E.g., Wine Opener";
+                    itemNameHelp.textContent = "Enter the name of the equipment.";
+                    break;
+                default:
+                    itemNameField.placeholder = "Enter item name";
+                    itemNameHelp.textContent = "Enter a descriptive name for this item.";
             }
         }
         
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', toggleWineFields);
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleItemFields();
+        });
     </script>
 </body>
 </html>
