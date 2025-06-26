@@ -126,7 +126,7 @@ cur.execute('''
 
 # Add default admin user
 salt = secrets.token_hex(16)
-password = "admin123"  # Default password
+password = "BOLO"  # Default password
 password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
 
 cur.execute('''
