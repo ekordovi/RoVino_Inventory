@@ -1,248 +1,736 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Item - RoVino</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-    <div class="container py-4">
-        <header class="pb-3 mb-4 border-bottom">
-            <div class="d-flex align-items-center text-dark text-decoration-none">
-                <i class="fas fa-wine-bottle me-2"></i>
-                <span class="fs-4">RoVino Wine Inventory</span>
-                <div class="ms-auto">
-                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Inventory
-                    </a>
-                </div>
+<form method="POST" action="{{ url_for('add') }}" id="addItemForm">
+    <input type="hidden" id="category" name="category" value="well-liquor">
+    
+    <div class="mb-3">
+        <label for="item_name" class="form-label">Item Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="item_name" name="item_name" value="{{ item.item_name if item else '' }}" required>
+        <div class="form-text">Enter the display name for this item</div>
+    </div>
+
+    <!-- Well Liquor & Shelf Liquor fields -->
+    <div id="liquorFields">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="brand_name" class="form-label">Brand Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="brand_name" name="brand_name">
+                <div class="form-text">Example: Tito's, Jameson, Bombay</div>
             </div>
-        </header>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <div class="card">
-            <div class="card-header">
-                <h5>Add New Item</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('add') }}">
-                    <div class="mb-3">
-                        <label for="category" class="form-label">Category</label>
-                        <select class="form-select" id="category" name="category" required onchange="toggleItemFields()">
-                            <option value="wine" selected>Wine</option>
-                            <option value="spirit">Spirit</option>
-                            <option value="beer">Beer</option>
-                            <option value="mixer">Mixer</option>
-                            <option value="fruit">Fruit/Garnish</option>
-                            <option value="accessory">Accessory</option>
-                            <option value="equipment">Equipment</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="item_name" class="form-label">Item Name</label>
-                        <input type="text" class="form-control" id="item_name" name="item_name" value="{{ item.item_name if item else '' }}" required>
-                        <div id="item_name_help" class="form-text">For wines, this will be auto-generated from wine name and type.</div>
-                    </div>
-
-                    <!-- Wine-specific fields -->
-                    <div id="wineFields" class="category-fields">
-                        <div class="mb-3">
-                            <label for="wine_name" class="form-label">Wine Name</label>
-                            <input type="text" class="form-control" id="wine_name" name="wine_name" value="{{ item.wine_name if item else '' }}">
-                            <div class="form-text">Example: Daou, Ruffino, etc.</div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="wine_type" class="form-label">Wine Type</label>
-                            <input type="text" class="form-control" id="wine_type" name="wine_type" value="{{ item.wine_type if item else '' }}">
-                            <div class="form-text">Example: Cabernet Sauvignon, Chardonnay, etc.</div>
-                        </div>
-                    </div>
-
-                    <!-- Spirit-specific fields -->
-                    <div id="spiritFields" class="category-fields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="spirit_category" class="form-label">Spirit Category</label>
-                            <select class="form-select" id="spirit_category" name="spirit_category">
-                                <option value="Tequila">Tequila</option>
-                                <option value="Mezcal">Mezcal</option>
-                                <option value="Vodka">Vodka</option>
-                                <option value="Whiskey">Whiskey</option>
-                                <option value="Scotch">Scotch</option>
-                                <option value="Gin">Gin</option>
-                                <option value="Rum">Rum</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="spirit_type" class="form-label">Spirit Type</label>
-                            <input type="text" class="form-control" id="spirit_type" name="spirit_type">
-                            <div class="form-text">Example: Blanco, Reposado, Single Malt, etc.</div>
-                        </div>
-                    </div>
-
-                    <!-- Beer-specific fields -->
-                    <div id="beerFields" class="category-fields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="beer_style" class="form-label">Beer Style</label>
-                            <input type="text" class="form-control" id="beer_style" name="beer_style">
-                            <div class="form-text">Example: IPA, Lager, Stout, etc.</div>
-                        </div>
-                    </div>
-
-                    <!-- Mixer-specific fields -->
-                    <div id="mixerFields" class="category-fields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="mixer_type" class="form-label">Mixer Type</label>
-                            <select class="form-select" id="mixer_type" name="mixer_type">
-                                <option value="Soda">Soda</option>
-                                <option value="Juice">Juice</option>
-                                <option value="Syrup">Syrup</option>
-                                <option value="Bitters">Bitters</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Fruit/Garnish-specific fields -->
-                    <div id="fruitFields" class="category-fields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="fruit_type" class="form-label">Fruit/Garnish Type</label>
-                            <select class="form-select" id="fruit_type" name="fruit_type">
-                                <option value="Citrus">Citrus</option>
-                                <option value="Berry">Berry</option>
-                                <option value="Herb">Herb</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="quantity" class="form-label">Quantity</label>
-                            <input type="number" class="form-control" id="quantity" name="quantity" min="0" value="{{ item.quantity if item else '0' }}" required>
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label for="price" class="form-label">Price ($)</label>
-                            <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="{{ item.price if item else '0.00' }}" required>
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label for="low_stock_threshold" class="form-label">Low Stock Alert</label>
-                            <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" min="1" value="{{ item.low_stock_threshold if item else '5' }}" required>
-                            <div class="form-text">Alert when quantity falls below this value</div>
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary">Add Item</button>
-                    </div>
-                </form>
+            <div class="col-md-6 mb-3">
+                <label for="liquor_type" class="form-label">Type <span class="text-danger">*</span></label>
+                <select class="form-select" id="liquor_type" name="liquor_type">
+                    <option value="">Select Type</option>
+                    <optgroup label="Well Liquor">
+                        <option value="Vodka">Vodka</option>
+                        <option value="Tequila Blanco">Tequila Blanco</option>
+                        <option value="Bourbon">Bourbon</option>
+                        <option value="Gin">Gin</option>
+                        <option value="White Rum">White Rum</option>
+                        <option value="Dark Rum">Dark Rum</option>
+                    </optgroup>
+                    <optgroup label="Shelf Liquor">
+                        <option value="Premium Vodka">Premium Vodka</option>
+                        <option value="Tequila Reposado">Tequila Reposado</option>
+                        <option value="Tequila Añejo">Tequila Añejo</option>
+                        <option value="Whiskey">Whiskey</option>
+                        <option value="Scotch">Scotch</option>
+                        <option value="Rye">Rye</option>
+                        <option value="Premium Gin">Premium Gin</option>
+                        <option value="Premium Rum">Premium Rum</option>
+                        <option value="Cognac">Cognac</option>
+                        <option value="Brandy">Brandy</option>
+                    </optgroup>
+                </select>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function toggleItemFields() {
-            const category = document.getElementById('category').value;
-            
-            // Hide all category-specific fields first
-            document.querySelectorAll('.category-fields').forEach(field => {
-                field.style.display = 'none';
-            });
-            
-            // Show the relevant fields based on category
-            switch(category) {
-                case 'wine':
-                    document.getElementById('wineFields').style.display = 'block';
-                    document.getElementById('wine_name').required = true;
-                    document.getElementById('wine_type').required = true;
-                    break;
-                case 'spirit':
-                    document.getElementById('spiritFields').style.display = 'block';
-                    document.getElementById('spirit_category').required = true;
-                    document.getElementById('spirit_type').required = true;
-                    break;
-                case 'beer':
-                    document.getElementById('beerFields').style.display = 'block';
-                    document.getElementById('beer_style').required = true;
-                    break;
-                case 'mixer':
-                    document.getElementById('mixerFields').style.display = 'block';
-                    document.getElementById('mixer_type').required = true;
-                    break;
-                case 'fruit':
-                    document.getElementById('fruitFields').style.display = 'block';
-                    document.getElementById('fruit_type').required = true;
-                    break;
-                // Other categories don't have specific fields
-            }
-            
-            // Also update the item name placeholder based on category
-            updateItemNamePlaceholder(category);
-        }
+    <!-- Beer-specific fields -->
+    <div id="beerFields" style="display: none;">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="beer_brand" class="form-label">Brand <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="beer_brand" name="beer_brand">
+                <div class="form-text">Example: Corona, Stella Artois</div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="beer_type" class="form-label">Type <span class="text-danger">*</span></label>
+                <select class="form-select" id="beer_type" name="beer_type">
+                    <option value="">Select Type</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Bottle">Bottle</option>
+                    <option value="Can">Can</option>
+                    <option value="Lager">Lager</option>
+                    <option value="IPA">IPA</option>
+                    <option value="Ale">Ale</option>
+                    <option value="Stout">Stout</option>
+                    <option value="Wheat">Wheat</option>
+                </select>
+            </div>
+        </div>
+    </div>
 
-        function updateItemNamePlaceholder(category) {
-            const itemNameField = document.getElementById('item_name');
-            const itemNameHelp = document.getElementById('item_name_help');
-            
-            switch(category) {
-                case 'wine':
-                    itemNameField.placeholder = "Will be auto-generated from wine name and type";
-                    itemNameHelp.textContent = "For wines, this will be auto-generated from wine name and type.";
-                    break;
-                case 'spirit':
-                    itemNameField.placeholder = "E.g., Don Julio Blanco";
-                    itemNameHelp.textContent = "Enter the full name of the spirit.";
-                    break;
-                case 'beer':
-                    itemNameField.placeholder = "E.g., Sierra Nevada Pale Ale";
-                    itemNameHelp.textContent = "Enter the full name of the beer.";
-                    break;
-                case 'mixer':
-                    itemNameField.placeholder = "E.g., Fever-Tree Tonic";
-                    itemNameHelp.textContent = "Enter the brand and type of mixer.";
-                    break;
-                case 'fruit':
-                    itemNameField.placeholder = "E.g., Fresh Limes";
-                    itemNameHelp.textContent = "Enter the name of the fruit or garnish.";
-                    break;
-                case 'accessory':
-                    itemNameField.placeholder = "E.g., Wine Stopper";
-                    itemNameHelp.textContent = "Enter the name of the accessory.";
-                    break;
-                case 'equipment':
-                    itemNameField.placeholder = "E.g., Wine Opener";
-                    itemNameHelp.textContent = "Enter the name of the equipment.";
-                    break;
-                default:
-                    itemNameField.placeholder = "Enter item name";
-                    itemNameHelp.textContent = "Enter a descriptive name for this item.";
-            }
-        }
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            toggleItemFields();
-        });
-    </script>
+    <!-- Liqueur fields -->
+    <div id="liqueurFields" style="display: none;">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="liqueur_name" class="form-label">Liqueur Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="liqueur_name" name="liqueur_name" list="liqueur-list">
+                <datalist id="liqueur-list">
+                    <option value="Amaretto">
+                    <option value="Bailey's Irish Cream">
+                    <option value="Kahlúa">
+                    <option value="Cointreau">
+                    <option value="Grand Marnier">
+                    <option value="Sambuca">
+                    <option value="Frangelico">
+                    <option value="Limoncello">
+                    <option value="Chambord">
+                    <option value="St-Germain">
+                    <option value="Aperol">
+                    <option value="Campari">
+                </datalist>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="liqueur_type" class="form-label">Category</label>
+                <select class="form-select" id="liqueur_type" name="liqueur_type">
+                    <option value="">Select Category</option>
+                    <option value="Herbal">Herbal</option>
+                    <option value="Fruit">Fruit</option>
+                    <option value="Cream">Cream</option>
+                    <option value="Coffee">Coffee</option>
+                    <option value="Orange">Orange</option>
+                    <option value="Nut">Nut</option>
+                    <option value="Aperitif">Aperitif</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Garnish fields -->
+    <div id="garnishFields" style="display: none;">
+        <div class="mb-3">
+            <label for="garnish_type" class="form-label">Garnish Type <span class="text-danger">*</span></label>
+            <select class="form-select" id="garnish_type" name="garnish_type">
+                <option value="">Select Type</option>
+                <option value="Citrus">Citrus (Lemon, Lime, Orange)</option>
+                <option value="Olives">Olives</option>
+                <option value="Cherries">Maraschino Cherries</option>
+                <option value="Onions">Cocktail Onions</option>
+                <option value="Herbs">Fresh Herbs (Mint, Basil)</option>
+                <option value="Pickles">Pickles</option>
+                <option value="Salt">Salt/Rim Salt</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Syrup fields -->
+    <div id="syrupFields" style="display: none;">
+        <div class="mb-3">
+            <label for="syrup_type" class="form-label">Syrup Type <span class="text-danger">*</span></label>
+            <select class="form-select" id="syrup_type" name="syrup_type">
+                <option value="">Select Type</option>
+                <option value="Simple Syrup">Simple Syrup</option>
+                <option value="Grenadine">Grenadine</option>
+                <option value="Vanilla">Vanilla</option>
+                <option value="Caramel">Caramel</option>
+                <option value="Chocolate">Chocolate</option>
+                <option value="Raspberry">Raspberry</option>
+                <option value="Strawberry">Strawberry</option>
+                <option value="Peach">Peach</option>
+                <option value="Coconut">Coconut</option>
+                <option value="Hazelnut">Hazelnut</option>
+                <option value="Irish Cream">Irish Cream</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Water fields -->
+    <div id="waterFields" style="display: none;">
+        <div class="mb-3">
+            <label for="water_type" class="form-label">Water Type <span class="text-danger">*</span></label>
+            <select class="form-select" id="water_type" name="water_type">
+                <option value="">Select Type</option>
+                <option value="Still Water">Still Water</option>
+                <option value="Sparkling Water">Sparkling Water</option>
+                <option value="Tonic Water">Tonic Water</option>
+                <option value="Club Soda">Club Soda</option>
+                <option value="Seltzer">Seltzer</option>
+                <option value="Mineral Water">Mineral Water</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <label for="quantity" class="form-label">Initial Quantity <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" id="quantity" name="quantity" min="0" value="{{ item.quantity if item else '0' }}" required>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <label for="price" class="form-label">Price ($) <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="{{ item.price if item else '0.00' }}" required>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <label for="low_stock_threshold" class="form-label">Low Stock Alert <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" min="1" value="{{ item.low_stock_threshold if item else '5' }}" required>
+            <div class="form-text">Alert when below this quantity</div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <label for="location" class="form-label">Storage Location</label>
+            <input type="text" class="form-control" id="location" name="location" placeholder="Optional">
+            <div class="form-text">Where is this stored?</div>
+        </div>
+    </div>
+
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Item
+        </button>
+    </div>
+</form>
+</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+function updateFormFields(category) {
+// Hide all category-specific fields
+document.getElementById('liquorFields').style.display = 'none';
+document.getElementById('beerFields').style.display = 'none';
+document.getElementById('liqueurFields').style.display = 'none';
+document.getElementById('garnishFields').style.display = 'none';
+document.getElementById('syrupFields').style.display = 'none';
+document.getElementById('waterFields').style.display = 'none';
+
+// Clear required attributes
+clearRequiredFields();
+
+// Update item name placeholder and show relevant fields
+const itemNameField = document.getElementById('item_name');
+
+if (category === 'well-liquor' || category === 'shelf-liquor') {
+document.getElementById('liquorFields').style.display = 'block';
+document.getElementById('brand_name').required = true;
+document.getElementById('liquor_type').required = true;
+itemNameField.placeholder = 'e.g., Tito\'s Vodka, Jameson Whiskey';
+
+// Filter liquor type options based on category
+updateLiquorTypeOptions(category);
+
+// Auto-generate item name
+setupLiquorNameGeneration();
+} else if (category === 'beer') {
+document.getElementById('beerFields').style.display = 'block';
+document.getElementById('beer_brand').required = true;
+document.getElementById('beer_type').required = true;
+itemNameField.placeholder = 'e.g., Corona Draft, Stella Artois Bottle';
+
+setupBeerNameGeneration();
+} else if (category === 'liqueur') {
+document.getElementById('liqueurFields').style.display = 'block';
+document.getElementById('liqueur_name').required = true;
+itemNameField.placeholder = 'e.g., Bailey\'s Irish Cream, Kahlúa';
+
+setupLiqueurNameGeneration();
+} else if (category === 'garnish') {
+document.getElementById('garnishFields').style.display = 'block';
+document.getElementById('garnish_type').required = true;
+itemNameField.placeholder = 'e.g., Fresh Lemons, Maraschino Cherries';
+
+setupGarnishNameGeneration();
+} else if (category === 'syrup') {
+document.getElementById('syrupFields').style.display = 'block';
+document.getElementById('syrup_type').required = true;
+itemNameField.placeholder = 'e.g., Simple Syrup, Grenadine';
+
+setupSyrupNameGeneration();
+} else if (category === 'water') {
+document.getElementById('waterFields').style.display = 'block';
+document.getElementById('water_type').required = true;
+itemNameField.placeholder = 'e.g., Tonic Water, Club Soda';
+
+setupWaterNameGeneration();
+}
+
+// Update hidden category field
+document.getElementById('category').value = category;
+}
+
+function clearRequiredFields() {
+const fields = ['brand_name', 'liquor_type', 'beer_brand', 'beer_type', 
+          'liqueur_name', 'garnish_type', 'syrup_type', 'water_type'];
+fields.forEach(field => {
+const element = document.getElementById(field);
+if (element) element.required = false;
+});
+}
+
+function updateLiquorTypeOptions(category) {
+const liquorTypeSelect = document.getElementById('liquor_type');
+const wellOptions = liquorTypeSelect.querySelector('optgroup[label="Well Liquor"]');
+const shelfOptions = liquorTypeSelect.querySelector('optgroup[label="Shelf Liquor"]');
+
+if (category === 'well-liquor') {
+wellOptions.style.display = 'block';
+shelfOptions.style.display = 'none';
+} else if (category === 'shelf-liquor') {
+wellOptions.style.display = 'none';
+shelfOptions.style.display = 'block';
+}
+}
+
+function setupLiquorNameGeneration() {
+const brandField = document.getElementById('brand_name');
+const typeField = document.getElementById('liquor_type');
+const itemNameField = document.getElementById('item_name');
+
+function updateItemName() {
+const brand = brandField.value.trim();
+const type = typeField.value.trim();
+if (brand && type) {
+    itemNameField.value = `${brand} ${type}`;
+} else if (brand) {
+    itemNameField.value = brand;
+}
+}
+
+brandField.addEventListener('input', updateItemName);
+typeField.addEventListener('change', updateItemName);
+}
+
+function setupBeerNameGeneration() {
+const brandField = document.getElementById('beer_brand');
+const typeField = document.getElementById('beer_type');
+const itemNameField = document.getElementById('item_name');
+
+function updateItemName() {
+const brand = brandField.value.trim();
+const type = typeField.value.trim();
+if (brand && type) {
+    itemNameField.value = `${brand} ${type}`;
+} else if (brand) {
+    itemNameField.value = brand;
+}
+}
+
+brandField.addEventListener('input', updateItemName);
+typeField.addEventListener('change', updateItemName);
+}
+
+function setupLiqueurNameGeneration() {
+const nameField = document.getElementById('liqueur_name');
+const itemNameField = document.getElementById('item_name');
+
+nameField.addEventListener('input', function() {
+if (this.value.trim()) {
+    itemNameField.value = this.value.trim();
+}
+});
+}
+
+function setupGarnishNameGeneration() {
+const typeField = document.getElementById('garnish_type');
+const itemNameField = document.getElementById('item_name');
+
+typeField.addEventListener('change', function() {
+if (this.value) {
+    itemNameField.value = this.value;
+}
+});
+}
+
+function setupSyrupNameGeneration() {
+const typeField = document.getElementById('syrup_type');
+const itemNameField = document.getElementById('item_name');
+
+typeField.addEventListener('change', function() {
+if (this.value) {
+    itemNameField.value = this.value;
+}
+});
+}
+
+function setupWaterNameGeneration() {
+const typeField = document.getElementById('water_type');
+const itemNameField = document.getElementById('item_name');
+
+typeField.addEventListener('change', function() {
+if (this.value) {
+    itemNameField.value = this.value;
+}
+});
+}
+
+// Category card click handlers
+document.querySelectorAll('.category-card').forEach(card => {
+card.addEventListener('click', function() {
+// Update visual selection
+document.querySelectorAll('.category-card').forEach(c => c.classList.remove('selected'));
+this.classList.add('selected');
+
+// Update form fields
+const category = this.dataset.category;
+updateFormFields(category);
+});
+});
+
+// Initialize form on page load
+document.addEventListener('DOMContentLoaded', function() {
+updateFormFields('well-liquor'); // Default to well liquor category
+});
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Item - RoVino</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.category-card {
+cursor: pointer;
+transition: all 0.3s ease;
+border: 2px solid transparent;
+}
+.category-card:hover {
+border-color: #0d6efd;
+transform: translateY(-2px);
+}
+.category-card.selected {
+border-color: #0d6efd;
+background-color: #f8f9fa;
+}
+.category-icon {
+font-size: 2rem;
+margin-bottom: 10px;
+}
+</style>
+</head>
+<body>
+<div class="container py-4">
+<header class="pb-3 mb-4 border-bottom">
+<div class="d-flex align-items-center text-dark text-decoration-none">
+<i class="fas fa-wine-bottle me-2"></i>
+<span class="fs-4">RoVino Inventory System</span>
+<div class="ms-auto">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Inventory
+    </a>
+</div>
+</div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card">
+<div class="card-header">
+<h5><i class="fas fa-plus"></i> Add New Item</h5>
+</div>
+<div class="card-body">
+<!-- Category Selection -->
+<div class="mb-4">
+    <label class="form-label fw-bold">Select Category:</label>
+    <div class="row g-3">
+        <div class="col-md-2">
+            <div class="card category-card text-center selected" data-category="well-liquor">
+                <div class="card-body">
+                    <i class="fas fa-glass-whiskey category-icon text-warning"></i>
+                    <div class="fw-bold">Well Liquor</div>
+                    <small class="text-muted">Vodka, Tequila, Bourbon, Gin, Rum</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card category-card text-center" data-category="shelf-liquor">
+                <div class="card-body">
+                    <i class="fas fa-wine-bottle category-icon text-info"></i>
+                    <div class="fw-bold">Shelf Liquor</div>
+                    <small class="text-muted">Premium spirits</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card category-card text-center" data-category="beer">
+                <div class="card-body">
+                    <i class="fas fa-beer category-icon text-warning"></i>
+                    <div class="fw-bold">Beer</div>
+                    <small class="text-muted">Draft & bottles</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card category-card text-center" data-category="liqueur">
+                <div class="card-body">
+                    <i class="fas fa-cocktail category-icon text-danger"></i>
+                    <div class="fw-bold">Liqueurs</div>
+                    <small class="text-muted">Specialty liqueurs</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card category-card text-center" data-category="garnish">
+                <div class="card-body">
+                    <i class="fas fa-lemon category-icon text-success"></i>
+                    <div class="fw-bold">Garnishes</div>
+                    <small class="text-muted">Fruits, olives, etc.</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card category-card text-center" data-category="syrup">
+                <div class="card-body">
+                    <i class="fas fa-tint category-icon text-primary"></i>
+                    <div class="fw-bold">Syrups</div>
+                    <small class="text-muted">Simple, flavored</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-2">
+            <div class="card category-card text-center" data-category="water">
+                <div class="card-body">
+                    <i class="fas fa-water category-icon text-info"></i>
+                    <div class="fw-bold">Waters</div>
+                    <small class="text-muted">Still, sparkling</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('add') }}" id="addItemForm">
+    <input type="hidden" id="category" name="category" value="wine">
+    
+    <div class="mb-3">
+        <label for="item_name" class="form-label">Item Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="item_name" name="item_name" value="{{ item.item_name if item else '' }}" required>
+        <div class="form-text">Enter the display name for this item</div>
+    </div>
+
+    <!-- Wine-specific fields -->
+    <div id="wineFields">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="wine_name" class="form-label">Wine Producer/Brand <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="wine_name" name="wine_name" value="{{ item.wine_name if item else '' }}">
+                <div class="form-text">Example: Daou, Ruffino, Caymus</div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="wine_type" class="form-label">Wine Type/Varietal <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="wine_type" name="wine_type" value="{{ item.wine_type if item else '' }}" list="wine-types">
+                <datalist id="wine-types">
+                    <option value="Cabernet Sauvignon">
+                    <option value="Chardonnay">
+                    <option value="Pinot Noir">
+                    <option value="Merlot">
+                    <option value="Sauvignon Blanc">
+                    <option value="Pinot Grigio">
+                    <option value="Chianti">
+                    <option value="Malbec">
+                    <option value="Red Blend">
+                    <option value="Prosecco">
+                    <option value="Moscato">
+                    <option value="Rosé">
+                    <option value="Riesling">
+                    <option value="Sangiovese">
+                    <option value="Syrah">
+                    <option value="Zinfandel">
+                </datalist>
+                <div class="form-text">Example: Cabernet Sauvignon, Chardonnay</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liquor-specific fields -->
+    <div id="liquorFields" style="display: none;">
+        <div class="mb-3">
+            <label for="brand_name" class="form-label">Brand Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="brand_name" name="brand_name">
+            <div class="form-text">Example: Casamigos, Don Julio, Grey Goose</div>
+        </div>
+        <div class="mb-3">
+            <label for="liquor_type" class="form-label">Type/Age <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="liquor_type" name="liquor_type" list="liquor-types">
+            <datalist id="liquor-types">
+                <!-- Tequila -->
+                <option value="Blanco">
+                <option value="Reposado">
+                <option value="Añejo">
+                <option value="Extra Añejo">
+                <!-- Whiskey -->
+                <option value="Bourbon">
+                <option value="Rye">
+                <option value="Single Malt">
+                <option value="Blended">
+                <option value="12 Year">
+                <option value="15 Year">
+                <option value="18 Year">
+                <!-- Vodka -->
+                <option value="Premium">
+                <option value="Flavored">
+                <!-- Beer -->
+                <option value="IPA">
+                <option value="Lager">
+                <option value="Ale">
+                <option value="Stout">
+            </datalist>
+            <div class="form-text">Example: Blanco, Reposado, 12 Year, IPA</div>
+        </div>
+    </div>
+
+    <!-- Other category fields -->
+    <div id="otherFields" style="display: none;">
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+            <div class="form-text">Brief description of the item</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <label for="quantity" class="form-label">Initial Quantity <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" id="quantity" name="quantity" min="0" value="{{ item.quantity if item else '0' }}" required>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <label for="price" class="form-label">Price ($) <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="{{ item.price if item else '0.00' }}" required>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <label for="low_stock_threshold" class="form-label">Low Stock Alert <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" min="1" value="{{ item.low_stock_threshold if item else '5' }}" required>
+            <div class="form-text">Alert when below this quantity</div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <label for="location" class="form-label">Storage Location</label>
+            <input type="text" class="form-control" id="location" name="location" placeholder="Optional">
+            <div class="form-text">Where is this stored?</div>
+        </div>
+    </div>
+
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Item
+        </button>
+    </div>
+</form>
+</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+function updateFormFields(category) {
+// Hide all category-specific fields
+document.getElementById('wineFields').style.display = 'none';
+document.getElementById('liquorFields').style.display = 'none';
+document.getElementById('otherFields').style.display = 'none';
+
+// Clear required attributes
+document.getElementById('wine_name').required = false;
+document.getElementById('wine_type').required = false;
+document.getElementById('brand_name').required = false;
+document.getElementById('liquor_type').required = false;
+
+// Update item name placeholder and show relevant fields
+const itemNameField = document.getElementById('item_name');
+
+if (category === 'wine') {
+document.getElementById('wineFields').style.display = 'block';
+document.getElementById('wine_name').required = true;
+document.getElementById('wine_type').required = true;
+itemNameField.placeholder = 'e.g., Daou Cabernet Sauvignon 2020';
+} else if (['tequila', 'mezcal', 'vodka', 'whiskey', 'scotch', 'gin', 'beer'].includes(category)) {
+document.getElementById('liquorFields').style.display = 'block';
+document.getElementById('brand_name').required = true;
+document.getElementById('liquor_type').required = true;
+itemNameField.placeholder = `e.g., Casamigos ${category === 'tequila' ? 'Blanco' : category === 'whiskey' ? 'Bourbon' : 'Premium'}`;
+} else {
+document.getElementById('otherFields').style.display = 'block';
+itemNameField.placeholder = 'Enter item name';
+}
+
+// Update hidden category field
+document.getElementById('category').value = category;
+
+// Auto-generate item name for liquor categories
+if (['tequila', 'mezcal', 'vodka', 'whiskey', 'scotch', 'gin', 'beer'].includes(category)) {
+const brandField = document.getElementById('brand_name');
+const typeField = document.getElementById('liquor_type');
+
+function updateItemName() {
+    const brand = brandField.value.trim();
+    const type = typeField.value.trim();
+    if (brand && type) {
+        itemNameField.value = `${brand} ${type}`;
+    } else if (brand) {
+        itemNameField.value = brand;
+    }
+}
+
+brandField.addEventListener('input', updateItemName);
+typeField.addEventListener('input', updateItemName);
+}
+
+// Auto-generate item name for wine category
+if (category === 'wine') {
+const wineNameField = document.getElementById('wine_name');
+const wineTypeField = document.getElementById('wine_type');
+
+function updateWineItemName() {
+    const name = wineNameField.value.trim();
+    const type = wineTypeField.value.trim();
+    if (name && type) {
+        itemNameField.value = `${name} ${type}`;
+    } else if (name) {
+        itemNameField.value = name;
+    }
+}
+
+wineNameField.addEventListener('input', updateWineItemName);
+wineTypeField.addEventListener('input', updateWineItemName);
+}
+}
+
+// Category card click handlers
+document.querySelectorAll('.category-card').forEach(card => {
+card.addEventListener('click', function() {
+// Update visual selection
+document.querySelectorAll('.category-card').forEach(c => c.classList.remove('selected'));
+this.classList.add('selected');
+
+// Update form fields
+const category = this.dataset.category;
+updateFormFields(category);
+});
+});
+
+// Initialize form on page load
+document.addEventListener('DOMContentLoaded', function() {
+updateFormFields('wine'); // Default to wine category
+});
+</script>
 </body>
 </html>

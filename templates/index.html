@@ -14,6 +14,24 @@
             background-color: #6c757d;
             color: white;
         }
+        .category-tab {
+            cursor: pointer;
+        }
+        .category-tab.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .category-counter {
+            background-color: #6c757d;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        .category-icon {
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -21,7 +39,7 @@
         <header class="pb-3 mb-4 border-bottom">
             <div class="d-flex align-items-center text-dark text-decoration-none">
                 <i class="fas fa-wine-bottle me-2"></i>
-                <span class="fs-4">RoVino Wine Inventory</span>
+                <span class="fs-4">RoVino Inventory System</span>
                 <div class="ms-auto">
                     <a href="{{ url_for('add') }}" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Add Item
@@ -47,16 +65,68 @@
             {% endif %}
         {% endwith %}
 
-        {% if success_message %}
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ success_message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <!-- Category Tabs -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <ul class="nav nav-pills card-header-pills" id="categoryTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active category-tab" data-category="all">
+                            <i class="fas fa-list category-icon"></i>All Items
+                            <span class="category-counter" id="count-all">{{ items|length }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link category-tab" data-category="well-liquor">
+                            <i class="fas fa-glass-whiskey category-icon"></i>Well Liquor
+                            <span class="category-counter" id="count-well-liquor">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link category-tab" data-category="shelf-liquor">
+                            <i class="fas fa-wine-bottle category-icon"></i>Shelf Liquor
+                            <span class="category-counter" id="count-shelf-liquor">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link category-tab" data-category="beer">
+                            <i class="fas fa-beer category-icon"></i>Beer
+                            <span class="category-counter" id="count-beer">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link category-tab" data-category="liqueur">
+                            <i class="fas fa-cocktail category-icon"></i>Liqueurs
+                            <span class="category-counter" id="count-liqueur">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link category-tab" data-category="garnish">
+                            <i class="fas fa-lemon category-icon"></i>Garnishes
+                            <span class="category-counter" id="count-garnish">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link category-tab" data-category="syrup">
+                            <i class="fas fa-tint category-icon"></i>Syrups
+                            <span class="category-counter" id="count-syrup">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link category-tab" data-category="water">
+                            <i class="fas fa-water category-icon"></i>Waters
+                            <span class="category-counter" id="count-water">0</span>
+                        </button>
+                    </li>
+                </ul>
             </div>
-        {% endif %}
+        </div>
 
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Inventory</h5>
+                <h5 class="mb-0">
+                    <span id="current-category-title">All Items</span>
+                    <small class="text-muted">(<span id="visible-count">{{ items|length }}</span> items)</small>
+                </h5>
                 <input type="text" id="searchInput" class="form-control form-control-sm w-25" placeholder="Search...">
             </div>
             <div class="card-body">
@@ -72,36 +142,59 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="inventoryTable">
                             {% for item in items %}
-                                <tr class="{% if item.quantity <= item.low_stock_threshold %}low-stock{% endif %}">
+                                <tr class="inventory-row {% if item.quantity <= item.low_stock_threshold %}low-stock{% endif %}" 
+                                    data-category="{{ item.category }}" 
+                                    data-search="{{ item.item_name|lower }} {{ item.category|lower }}">
                                     <td>
-                                        {{ item.item_name }}
-                                        {% if item.category == 'wine' %}
-                                            <span class="badge wine-badge ms-1">{{ item.type }}</span>
-                                        {% endif %}
+                                        <div class="d-flex align-items-center">
+                                            {% if item.category == 'wine' %}
+                                                <i class="fas fa-wine-bottle text-primary me-2"></i>
+                                            {% elif item.category in ['tequila', 'mezcal'] %}
+                                                <i class="fas fa-cocktail text-warning me-2"></i>
+                                            {% elif item.category == 'vodka' %}
+                                                <i class="fas fa-glass-martini text-info me-2"></i>
+                                            {% elif item.category in ['whiskey', 'scotch'] %}
+                                                <i class="fas fa-whiskey-glass text-warning me-2"></i>
+                                            {% elif item.category == 'gin' %}
+                                                <i class="fas fa-seedling text-success me-2"></i>
+                                            {% elif item.category == 'beer' %}
+                                                <i class="fas fa-beer text-warning me-2"></i>
+                                            {% else %}
+                                                <i class="fas fa-box text-secondary me-2"></i>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ item.item_name }}</div>
+                                                {% if item.category == 'wine' and item.type %}
+                                                    <small class="text-muted">{{ item.type }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td>{{ item.category }}</td>
                                     <td>
-                                        {{ item.quantity }}
+                                        <span class="badge bg-secondary">{{ item.category|title }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold">{{ item.quantity }}</span>
                                         {% if item.quantity <= item.low_stock_threshold %}
-                                            <span class="badge bg-warning text-dark">Low</span>
+                                            <span class="badge bg-warning text-dark ms-1">Low</span>
                                         {% endif %}
                                     </td>
                                     <td>${{ "%.2f"|format(item.price) }}</td>
                                     <td>{{ item.last_updated }}</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="{{ url_for('update', item_id=item.id) }}" class="btn btn-outline-primary">
+                                            <a href="{{ url_for('update', item_id=item.id) }}" class="btn btn-outline-primary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             {% if item.wine_id %}
-                                                <a href="{{ url_for('restock', wine_id=item.wine_id) }}" class="btn btn-outline-success">
+                                                <a href="{{ url_for('restock', wine_id=item.wine_id) }}" class="btn btn-outline-success" title="Restock">
                                                     <i class="fas fa-plus-circle"></i>
                                                 </a>
                                             {% endif %}
                                             <button type="button" class="btn btn-outline-danger" 
-                                                    data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}">
+                                                    data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}" title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -119,7 +212,7 @@
                                                     </div>
                                                     <div class="modal-footer">
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <form action="{{ url_for('delete', item_id=item.id) }}" method="POST">
+                                                        <form action="{{ url_for('delete', item_id=item.id) }}" method="POST" style="display: inline;">
                                                             <button type="submit" class="btn btn-danger">Delete</button>
                                                         </form>
                                                     </div>
@@ -129,7 +222,7 @@
                                     </td>
                                 </tr>
                             {% else %}
-                                <tr>
+                                <tr id="no-items-row">
                                     <td colspan="6" class="text-center">No items in inventory. <a href="{{ url_for('add') }}">Add one</a>.</td>
                                 </tr>
                             {% endfor %}
@@ -142,28 +235,140 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Simple search functionality
-        document.getElementById('searchInput').addEventListener('keyup', function() {
-            let filter = this.value.toLowerCase();
-            let table = document.querySelector('table');
-            let rows = table.getElementsByTagName('tr');
-            
-            for (let i = 1; i < rows.length; i++) {
-                let shown = false;
-                let cells = rows[i].getElementsByTagName('td');
+        // Category filtering and counting
+        function updateCategoryCounts() {
+            const categories = {
+                'all': 0,
+                'well-liquor': 0,
+                'shelf-liquor': 0,
+                'beer': 0,
+                'liqueur': 0,
+                'garnish': 0,
+                'syrup': 0,
+                'water': 0
+            };
+
+            document.querySelectorAll('.inventory-row').forEach(row => {
+                const category = row.dataset.category;
+                categories.all++;
                 
-                if (cells.length) {
-                    for (let j = 0; j < cells.length - 1; j++) {
-                        let cellText = cells[j].textContent || cells[j].innerText;
-                        if (cellText.toLowerCase().indexOf(filter) > -1) {
-                            shown = true;
-                            break;
-                        }
-                    }
-                    
-                    rows[i].style.display = shown ? '' : 'none';
+                if (category === 'well-liquor') {
+                    categories['well-liquor']++;
+                } else if (category === 'shelf-liquor') {
+                    categories['shelf-liquor']++;
+                } else if (category === 'beer') {
+                    categories.beer++;
+                } else if (category === 'liqueur') {
+                    categories.liqueur++;
+                } else if (category === 'garnish') {
+                    categories.garnish++;
+                } else if (category === 'syrup') {
+                    categories.syrup++;
+                } else if (category === 'water') {
+                    categories.water++;
                 }
-            }
+            });
+
+            // Update counters
+            Object.keys(categories).forEach(cat => {
+                const counter = document.getElementById(`count-${cat}`);
+                if (counter) {
+                    counter.textContent = categories[cat];
+                }
+            });
+        }
+
+        function filterByCategory(category) {
+            const rows = document.querySelectorAll('.inventory-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const rowCategory = row.dataset.category;
+                let shouldShow = false;
+                
+                if (category === 'all') {
+                    shouldShow = true;
+                } else {
+                    shouldShow = rowCategory === category;
+                }
+                
+                if (shouldShow) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update visible count
+            document.getElementById('visible-count').textContent = visibleCount;
+            
+            // Update category title
+            const categoryNames = {
+                'all': 'All Items',
+                'well-liquor': 'Well Liquor',
+                'shelf-liquor': 'Shelf Liquor',
+                'beer': 'Beer',
+                'liqueur': 'Liqueurs',
+                'garnish': 'Garnishes',
+                'syrup': 'Syrups',
+                'water': 'Waters'
+            };
+            document.getElementById('current-category-title').textContent = categoryNames[category] || 'Items';
+        }
+
+        // Category tab click handlers
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Update active tab
+                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Filter by category
+                const category = this.dataset.category;
+                filterByCategory(category);
+                
+                // Clear search when switching categories
+                document.getElementById('searchInput').value = '';
+            });
+        });
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            const activeCategory = document.querySelector('.category-tab.active').dataset.category;
+            const rows = document.querySelectorAll('.inventory-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const searchText = row.dataset.search;
+                const rowCategory = row.dataset.category;
+                
+                // Check if row matches current category filter
+                let categoryMatch = false;
+                if (activeCategory === 'all') {
+                    categoryMatch = true;
+                } else {
+                    categoryMatch = rowCategory === activeCategory;
+                }
+                
+                // Check if row matches search text
+                const textMatch = searchText.includes(filter);
+                
+                if (categoryMatch && textMatch) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            document.getElementById('visible-count').textContent = visibleCount;
+        });
+
+        // Initialize counts on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCategoryCounts();
         });
     </script>
 </body>

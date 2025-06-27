@@ -265,37 +265,68 @@ def change_password():
 
 # Home route - display inventory
 @app.route('/')
+@app.route('/category/<category_name>')
 @login_required
-def index():
+def index(category_name=None):
     try:
         with get_db_connection() as conn:
-            inventory = conn.execute('''
-                SELECT i.id, i.item_name, i.category, i.quantity, i.price, 
-                       i.low_stock_threshold, i.last_updated, w.wine_id, w.name, w.type
-                FROM Inventory i
-                LEFT JOIN Wines w ON i.wine_id = w.wine_id
-                ORDER BY i.category, i.item_name
-            ''').fetchall()
+            if category_name and category_name != 'all':
+                # Filter by specific category
+                inventory = conn.execute('''
+                    SELECT i.id, i.item_name, i.category, i.quantity, i.price, 
+                           i.low_stock_threshold, i.last_updated, w.wine_id, w.name, w.type
+                    FROM Inventory i
+                    LEFT JOIN Wines w ON i.wine_id = w.wine_id
+                    WHERE i.category = ?
+                    ORDER BY i.item_name
+                ''', (category_name,)).fetchall()
+            else:
+                # Show all items
+                inventory = conn.execute('''
+                    SELECT i.id, i.item_name, i.category, i.quantity, i.price, 
+                           i.low_stock_threshold, i.last_updated, w.wine_id, w.name, w.type
+                    FROM Inventory i
+                    LEFT JOIN Wines w ON i.wine_id = w.wine_id
+                    ORDER BY 
+                        CASE i.category
+                            WHEN 'well-liquor' THEN 1
+                            WHEN 'shelf-liquor' THEN 2
+                            WHEN 'beer' THEN 3
+                            WHEN 'liqueur' THEN 4
+                            WHEN 'garnish' THEN 5
+                            WHEN 'syrup' THEN 6
+                            WHEN 'water' THEN 7
+                            ELSE 8
+                        END,
+                        i.item_name
+                ''').fetchall()
+            
         return render_template('index.html', 
                              items=inventory, 
+                             current_category=category_name,
                              success_message=request.args.get('success_message'))
     except DatabaseError as e:
         flash(str(e), 'error')
-        return render_template('index.html', items=[])
-
+        return render_template('index.html', items=[], current_category=category_name)
 # Add new wine to inventory
+@app.route('/add', methods=['GET', 'POST'])
+@login_required
 @app.route('/add', methods=['GET', 'POST'])
 @login_required
 def add():
     if request.method == 'POST':
+        category = request.form.get('category', 'well-liquor').strip().lower()
+        
+        # Generate item name based on category
+        item_name = generate_item_name(request.form, category)
+        
         item_data = {
-            'item_name': request.form.get('item_name', '').strip(),
-            'wine_name': request.form.get('wine_name', '').strip(),
-            'wine_type': request.form.get('wine_type', '').strip(),
-            'category': request.form.get('category', 'wine').strip(),
+            'item_name': item_name,
+            'category': category,
             'quantity': request.form.get('quantity', '0'),
             'price': request.form.get('price', '0'),
-            'low_stock_threshold': request.form.get('low_stock_threshold', '5')
+            'low_stock_threshold': request.form.get('low_stock_threshold', '5'),
+            'location': request.form.get('location', '').strip()
         }
         
         errors = validate_item(item_data)
@@ -306,40 +337,20 @@ def add():
         
         try:
             with get_db_connection() as conn:
-                # First, insert or get the wine
-                wine_id = None
-                if item_data['category'] == 'wine' and item_data['wine_name'] and item_data['wine_type']:
-                    conn.execute('''
-                        INSERT OR IGNORE INTO Wines (name, type, price) 
-                        VALUES (?, ?, ?)
-                    ''', (
-                        item_data['wine_name'],
-                        item_data['wine_type'],
-                        float(item_data['price'])
-                    ))
-                    
-                    wine_row = conn.execute('''
-                        SELECT wine_id FROM Wines 
-                        WHERE name = ? AND type = ?
-                    ''', (item_data['wine_name'], item_data['wine_type'])).fetchone()
-                    
-                    if wine_row:
-                        wine_id = wine_row['wine_id']
-                
-                # Then insert into inventory
+                # Insert into inventory (no wine_id for new categories)
                 conn.execute('''
                     INSERT INTO Inventory 
-                    (item_name, category, quantity, price, wine_id, low_stock_threshold, last_updated) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (item_name, category, quantity, price, low_stock_threshold, last_updated) 
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ''', (
                     item_data['item_name'],
                     item_data['category'],
                     int(item_data['quantity']),
                     float(item_data['price']),
-                    wine_id,
                     int(item_data['low_stock_threshold']),
                     date.today().isoformat()
                 ))
+                
             flash("New item added successfully!", 'success')
             return redirect(url_for('index'))
         except DatabaseError as e:
@@ -347,6 +358,36 @@ def add():
             return render_template('add.html', item=item_data)
             
     return render_template('add.html')
+def generate_item_name(form_data, category):
+    """Generate item name based on category and form inputs"""
+    if category in ['well-liquor', 'shelf-liquor']:
+        brand = form_data.get('brand_name', '').strip()
+        liquor_type = form_data.get('liquor_type', '').strip()
+        if brand and liquor_type:
+            return f"{brand} {liquor_type}"
+        return brand or liquor_type
+    
+    elif category == 'beer':
+        brand = form_data.get('beer_brand', '').strip()
+        beer_type = form_data.get('beer_type', '').strip()
+        if brand and beer_type:
+            return f"{brand} {beer_type}"
+        return brand or beer_type
+    
+    elif category == 'liqueur':
+        return form_data.get('liqueur_name', '').strip()
+    
+    elif category == 'garnish':
+        return form_data.get('garnish_type', '').strip()
+    
+    elif category == 'syrup':
+        return form_data.get('syrup_type', '').strip()
+    
+    elif category == 'water':
+        return form_data.get('water_type', '').strip()
+    
+    # Fallback to manual item name
+    return form_data.get('item_name', '').strip()
 
 # Update existing inventory item
 @app.route('/update/<int:item_id>', methods=['GET', 'POST'])
@@ -502,26 +543,38 @@ def history():
         flash(str(e), 'error')
         return redirect(url_for('index'))
 
-# Low stock alert dashboard
+# Category-specific low stock alerts
 @app.route('/alerts')
+@app.route('/alerts/<category_name>')
 @login_required
-def alerts():
+def alerts(category_name=None):
     try:
         with get_db_connection() as conn:
-            low_stock_items = conn.execute('''
-                SELECT i.id, i.item_name, i.quantity, i.low_stock_threshold,
-                       w.name, w.type, w.wine_id
-                FROM Inventory i
-                LEFT JOIN Wines w ON i.wine_id = w.wine_id
-                WHERE i.quantity <= i.low_stock_threshold
-                ORDER BY (i.quantity * 1.0 / i.low_stock_threshold)
-            ''').fetchall()
+            if category_name and category_name != 'all':
+                low_stock_items = conn.execute('''
+                    SELECT i.id, i.item_name, i.quantity, i.low_stock_threshold, i.category,
+                           w.name, w.type, w.wine_id
+                    FROM Inventory i
+                    LEFT JOIN Wines w ON i.wine_id = w.wine_id
+                    WHERE i.quantity <= i.low_stock_threshold AND i.category = ?
+                    ORDER BY (i.quantity * 1.0 / i.low_stock_threshold)
+                ''', (category_name,)).fetchall()
+            else:
+                low_stock_items = conn.execute('''
+                    SELECT i.id, i.item_name, i.quantity, i.low_stock_threshold, i.category,
+                           w.name, w.type, w.wine_id
+                    FROM Inventory i
+                    LEFT JOIN Wines w ON i.wine_id = w.wine_id
+                    WHERE i.quantity <= i.low_stock_threshold
+                    ORDER BY i.category, (i.quantity * 1.0 / i.low_stock_threshold)
+                ''').fetchall()
             
-            return render_template('alerts.html', items=low_stock_items)
+            return render_template('alerts.html', 
+                                 items=low_stock_items, 
+                                 current_category=category_name)
     except DatabaseError as e:
         flash(str(e), 'error')
         return redirect(url_for('index'))
-
 # API endpoint for inventory data
 @app.route('/api/inventory', methods=['GET'])
 @login_required
