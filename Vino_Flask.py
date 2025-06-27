@@ -311,8 +311,6 @@ def index(category_name=None):
 # Add new wine to inventory
 @app.route('/add', methods=['GET', 'POST'])
 @login_required
-@app.route('/add', methods=['GET', 'POST'])
-@login_required
 def add():
     if request.method == 'POST':
         category = request.form.get('category', 'well-liquor').strip().lower()
