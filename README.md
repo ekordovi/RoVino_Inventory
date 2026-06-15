@@ -177,9 +177,6 @@ RoVino uses an SQLite database with the following tables:
 - Advanced reporting and analytics
 - Mobile app integration
 
-## License
-
-[MIT License](LICENSE)
 
 ## Acknowledgements
 
