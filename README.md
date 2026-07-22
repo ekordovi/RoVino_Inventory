@@ -1,6 +1,8 @@
-# RoVino - Wine Inventory Management System
+# RoVino Inventory Management System
 
-RoVino is a web-based wine inventory management system built with Python Flask and SQLite. It helps you keep track of your wine collection, manage inventory levels, and record restocking activities.
+RoVino is a Flask and SQLite inventory application built to track wine and restaurant inventory, manage low-stock alerts, record restocks, and support basic admin workflows.
+
+This project is best presented as a software/database operations project. It supports a research or laboratory resume as evidence of practical Python, SQL, and workflow-building ability, but it should not be the centerpiece of a wet-lab research portfolio.
 
 ## Features
 
@@ -22,8 +24,8 @@ RoVino is a web-based wine inventory management system built with Python Flask a
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/rovino.git
-   cd rovino
+   git clone https://github.com/ekordovi/RoVino_Inventory.git
+   cd RoVino_Inventory
    ```
 
 2. Create a virtual environment (recommended):
@@ -185,6 +187,14 @@ RoVino uses an SQLite database with the following tables:
 - SQLite for database storage
 - Font Awesome for icons
 
+## Portfolio Note
+
+RoVino is useful evidence of practical programming, database design, and operations thinking. For biology or research roles, it should be presented as a supporting technical project rather than the lead project.
+
+## Repository Hygiene
+
+Development clutter such as `.Rproj.user/`, `.Rhistory`, `.DS_Store`, and local editor files should not be committed. The repository includes a `.gitignore` to prevent those files from coming back.
+
 ## Support
 
-For issues, questions, or feature requests, please [open an issue](https://github.com/yourusername/rovino/issues) on GitHub.
+For issues, questions, or feature requests, please open an issue at `https://github.com/ekordovi/RoVino_Inventory/issues`.
